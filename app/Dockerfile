@@ -19,7 +19,7 @@ RUN CGO_ENABLED=0 go build -o /todo .
 FROM scratch
 
 # Copy the compiled binary from the build stage
-COPY --from=build /todo
+COPY --from=build /app /todo
 
 # Set the entrypoint for the container to run the binary
 ENTRYPOINT ["/app"]
