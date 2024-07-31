@@ -1,89 +1,60 @@
 package main
 
 import (
-    "encoding/json"
+    "bufio"
     "fmt"
-    "net/http"
-    "strconv"
-    "sync"
+    "os"
+    "strings"
 )
 
-type Task struct {
-    ID          int    `json:"id"`
-    Description string `json:"description"`
-    Completed   bool   `json:"completed"`
-}
-
-var (
-    tasks  []Task
-    nextID int
-    mu     sync.Mutex
-)
+var tasks []string
 
 func main() {
-    http.HandleFunc("/add", addTaskHandler)
-    http.HandleFunc("/view", viewTasksHandler)
-    http.HandleFunc("/complete", completeTaskHandler)
+    reader := bufio.NewReader(os.Stdin)
 
-    fmt.Println("Starting server on :8080")
-    http.ListenAndServe(":8080", nil)
-}
+    for {
+        fmt.Println("1. Add Task")
+        fmt.Println("2. View Tasks")
+        fmt.Println("3. Exit")
+        fmt.Print("Choose an option: ")
 
-func addTaskHandler(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-        return
-    }
+        option, _ := reader.ReadString('\n')
+        option = strings.TrimSpace(option)
 
-    description := r.FormValue("description")
-    if description == "" {
-        http.Error(w, "Description is required", http.StatusBadRequest)
-        return
-    }
-
-    mu.Lock()
-    defer mu.Unlock()
-
-    nextID++
-    task := Task{ID: nextID, Description: description, Completed: false}
-    tasks = append(tasks, task)
-
-    w.WriteHeader(http.StatusCreated)
-    json.NewEncoder(w).Encode(task)
-}
-
-func viewTasksHandler(w http.ResponseWriter, r *http.Request) {
-    mu.Lock()
-    defer mu.Unlock()
-
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(tasks)
-}
-
-func completeTaskHandler(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-        return
-    }
-
-    idStr := r.FormValue("id")
-    id, err := strconv.Atoi(idStr)
-    if err != nil || id <= 0 {
-        http.Error(w, "Invalid ID", http.StatusBadRequest)
-        return
-    }
-
-    mu.Lock()
-    defer mu.Unlock()
-
-    for i, task := range tasks {
-        if task.ID == id {
-            tasks[i].Completed = true
-            w.WriteHeader(http.StatusOK)
-            json.NewEncoder(w).Encode(tasks[i])
+        switch option {
+        case "1":
+            addTask(reader)
+        case "2":
+            viewTasks()
+        case "3":
+            fmt.Println("Exiting...")
             return
+        default:
+            fmt.Println("Invalid option. Please choose again.")
         }
     }
-
-    http.Error(w, "Task not found", http.StatusNotFound)
 }
+
+func addTask(reader *bufio.Reader) {
+    fmt.Print("Enter task description: ")
+    task, _ := reader.ReadString('\n')
+    task = strings.TrimSpace(task)
+    if task != "" {
+        tasks = append(tasks, task)
+        fmt.Println("Task added.")
+    } else {
+        fmt.Println("Task description cannot be empty.")
+    }
+}
+
+func viewTasks() {
+    if len(tasks) == 0 {
+        fmt.Println("No tasks to display.")
+        return
+    }
+    fmt.Println("To-Do List:")
+    for i, task := range tasks {
+        fmt.Printf("%d. %s\n", i+1, task)
+    }
+}
+

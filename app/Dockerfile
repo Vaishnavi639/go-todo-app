@@ -10,7 +10,7 @@ ENV GO111MODULE=off
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o /todo .
+RUN CGO_ENABLED=0 go build -o /app .
 
 ############################################
 # HERE STARTS THE MAGIC OF MULTI STAGE BUILD
@@ -19,7 +19,7 @@ RUN CGO_ENABLED=0 go build -o /todo .
 FROM scratch
 
 # Copy the compiled binary from the build stage
-COPY --from=build /app /todo
+COPY --from=build /app /app
 
 # Set the entrypoint for the container to run the binary
 ENTRYPOINT ["/app"]
